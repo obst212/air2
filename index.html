@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LED Neon Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            mint: '#10B981',
+                            neonMint: '#00F5D4',
+                            indigoPink: '#FF007F',
+                            neonBlue: '#00F0FF',
+                            neonYellow: '#FFF500'
+                        }
+                    },
+                    fontFamily: {
+                        gothic: ['"Nanum Gothic"', 'sans-serif'],
+                        myeongjo: ['"Nanum Myeongjo"', 'serif'],
+                        cute: ['"Single Day"', 'cursive'],
+                        neon: ['"Orbitron"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700&family=Orbitron:wght@400;700;900&family=Single+Day&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 기본 터치 인터랙션 방지 및 부드러운 전환 효과 */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Nanum Gothic', sans-serif;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        body {
+            overscroll-behavior: none;
+        }
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen overflow-x-hidden flex justify-center">
+
+    <!-- 모바일 프레임 모크업 (데스크탑에서도 뛰어난 레이아웃 유지) -->
+    <div class="w-full max-w-md min-h-screen flex flex-col justify-between bg-white dark:bg-slate-950 shadow-2xl relative overflow-hidden pb-4">
+        
+        <!-- Header -->
+        <header class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-900 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-20">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-indigoPink to-brand-neonMint flex items-center justify-center shadow-lg shadow-brand-indigoPink/20">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base tracking-tight bg-gradient-to-r from-brand-indigoPink to-purple-600 bg-clip-text text-transparent dark:from-brand-neonMint dark:to-teal-400">LED NEON STUDIO</h1>
+                    <p class="text-[10px] text-slate-400 font-medium">Stylish Cheer Display</p>
+                </div>
+            </div>
+            <button id="themeToggle" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform" aria-label="테마 전환">
+                <i data-lucide="moon" id="themeIcon" class="w-5 h-5 text-slate-600 dark:text-yellow-400"></i>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden pb-24">
+            
+            <!-- 1. Real-time Preview Section (상단 약 40%) -->
+            <div class="px-5 py-4 flex flex-col gap-2">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Realtime Preview</span>
+                    <span class="flex items-center gap-1 text-[11px] font-semibold text-brand-mint bg-brand-mint/10 px-2 py-0.5 rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-mint animate-ping"></span> Live
+                    </span>
+                </div>
+                <!-- 전광판 스타일 하우징 -->
+                <div class="relative w-full aspect-[16/9] bg-black rounded-2xl overflow-hidden border-[6px] border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200 dark:shadow-none flex items-center justify-center">
+                    <!-- LED 전광판 도트 매트릭스 백그라운드 그리드 효과 -->
+                    <div class="absolute inset-0 pointer-events-none opacity-[0.08]" style="background-image: radial-gradient(circle, #fff 1.5px, transparent 1.5px); background-size: 8px 8px;"></div>
+                    
+                    <!-- 실시간 렌더링 컨테이너 -->
+                    <div id="previewDisplay" class="absolute w-full h-full overflow-hidden flex items-center">
+                        <div id="previewTextWrapper" class="whitespace-nowrap select-none inline-block">
+                            <span id="previewText" class="text-3xl font-extrabold px-4">반갑습니다</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 데코레이션 엣지 라인 -->
+                    <div class="absolute top-2 left-2 flex gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 opacity-60"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-yellow-500 opacity-60"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Controller Section (하단 약 60%) -->
+            <div class="px-5 space-y-5">
+                
+                <!-- 문구 입력창 -->
+                <div class="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm space-y-2">
+                    <label class="block text-xs font-bold text-slate-400 dark:text-slate-400 tracking-wide" for="textInput">전광판 문구</label>
+                    <div class="relative flex items-center">
+                        <input id="textInput" type="text" value="심장이 바운스! 바운스!" placeholder="여기에 응원 문구를 적어주세요." class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-indigoPink dark:focus:ring-brand-neonMint font-medium text-sm transition-all duration-300">
+                        <button id="clearText" class="absolute right-3 w-7 h-7 rounded-full bg-slate-200/50 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:scale-105 active:scale-95 transition-transform">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 폰트 스타일 선택 -->
+                <div class="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm space-y-3">
+                    <label class="block text-xs font-bold text-slate-400 dark:text-slate-400 tracking-wide">폰트 스타일</label>
+                    <div class="grid grid-cols-2 gap-2" id="fontChipGroup">
+                        <!-- Gothic -->
+                        <button data-font="gothic" class="font-chip font-gothic py-2.5 px-3 rounded-xl border-2 text-xs font-bold text-center transition-all bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 select-none">
+                            단단한 고딕
+                        </button>
+                        <!-- Myeongjo -->
+                        <button data-font="myeongjo" class="font-chip font-myeongjo py-2.5 px-3 rounded-xl border-2 text-xs font-bold text-center transition-all bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 select-none">
+                            우아한 명조
+                        </button>
+                        <!-- Cute -->
+                        <button data-font="cute" class="font-chip font-cute py-2.5 px-3 rounded-xl border-2 text-xs font-bold text-center transition-all bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 select-none">
+                            아기자기체
+                        </button>
+                        <!-- Neon Tech -->
+                        <button data-font="neon" class="font-chip font-neon py-2.5 px-3 rounded-xl border-2 text-xs font-black text-center tracking-wider transition-all bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 select-none">
+                            NEON GLOW
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 색상 선택기 (글자색 / 배경색 멀티 탭) -->
+                <div class="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <div class="flex gap-4">
+                            <button id="tabTextColorBtn" class="text-xs font-bold text-brand-indigoPink dark:text-brand-neonMint pb-1 border-b-2 border-brand-indigoPink dark:border-brand-neonMint">글자 색상</button>
+                            <button id="tabBgColorBtn" class="text-xs font-bold text-slate-400 dark:text-slate-500 pb-1 border-b-2 border-transparent">배경 색상</button>
+                        </div>
+                        <span id="currentColorIndicator" class="text-[10px] uppercase font-mono text-slate-400">#FF007F</span>
+                    </div>
+
+                    <!-- 글자 색상 팔레트 -->
+                    <div id="textColorPalette" class="space-y-3">
+                        <div class="flex flex-wrap gap-2">
+                            <button data-color="#FFFFFF" class="color-chip w-8 h-8 rounded-full border-2 border-white shadow-md cursor-pointer scale-105" style="background-color: #FFFFFF;"></button>
+                            <button data-color="#00F5D4" class="color-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #00F5D4;"></button>
+                            <button data-color="#FF007F" class="color-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #FF007F;"></button>
+                            <button data-color="#00F0FF" class="color-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #00F0FF;"></button>
+                            <button data-color="#FFF500" class="color-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #FFF500;"></button>
+                            <button data-color="#A020F0" class="color-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #A020F0;"></button>
+                            <button data-color="#FF4500" class="color-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #FF4500;"></button>
+                            <!-- Custom Color Picker -->
+                            <label class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center cursor-pointer relative bg-gradient-to-tr from-rose-400 via-fuchsia-500 to-indigo-500 overflow-hidden active:scale-95 transition-transform">
+                                <input type="color" id="customTextColor" class="absolute inset-0 opacity-0 cursor-pointer">
+                                <i data-lucide="plus" class="w-4 h-4 text-white pointer-events-none"></i>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 배경 색상 팔레트 (Hidden Default) -->
+                    <div id="bgColorPalette" class="space-y-3 hidden">
+                        <div class="flex flex-wrap gap-2">
+                            <button data-bgcolor="#000000" class="bgcolor-chip w-8 h-8 rounded-full border-2 border-white shadow-md cursor-pointer scale-105" style="background-color: #000000;"></button>
+                            <button data-bgcolor="#090D16" class="bgcolor-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #090D16;"></button>
+                            <button data-bgcolor="#1C1B29" class="bgcolor-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #1C1B29;"></button>
+                            <button data-bgcolor="#002A32" class="bgcolor-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #002A32;"></button>
+                            <button data-bgcolor="#FFFFFF" class="bgcolor-chip w-8 h-8 rounded-full border border-slate-200 cursor-pointer" style="background-color: #FFFFFF;"></button>
+                            <!-- Custom Bg Color Picker -->
+                            <label class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center cursor-pointer relative bg-gradient-to-tr from-rose-400 via-fuchsia-500 to-indigo-500 overflow-hidden active:scale-95 transition-transform">
+                                <input type="color" id="customBgColor" class="absolute inset-0 opacity-0 cursor-pointer">
+                                <i data-lucide="plus" class="w-4 h-4 text-white pointer-events-none"></i>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 글자 효과(Effect) 설정 -->
+                <div class="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm space-y-4">
+                    <label class="block text-xs font-bold text-slate-400 dark:text-slate-400 tracking-wide">효과 & 애니메이션</label>
+                    
+                    <!-- 1. Marquee Direction Selection -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-600 dark:text-slate-300">이동 방향</span>
+                        <div class="flex gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl">
+                            <button data-dir="left" class="dir-chip text-xs px-3 py-1.5 rounded-lg font-bold transition-all bg-white dark:bg-slate-800 shadow-sm text-brand-indigoPink dark:text-brand-neonMint">왼쪽</button>
+                            <button data-dir="stop" class="dir-chip text-xs px-3 py-1.5 rounded-lg font-bold transition-all text-slate-400 dark:text-slate-500">고정</button>
+                            <button data-dir="right" class="dir-chip text-xs px-3 py-1.5 rounded-lg font-bold transition-all text-slate-400 dark:text-slate-500">오른쪽</button>
+                        </div>
+                    </div>
+
+                    <!-- 2. Scrolling Speed Slider -->
+                    <div class="space-y-1.5" id="speedContainer">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-600 dark:text-slate-300">이동 속도</span>
+                            <span id="speedValue" class="text-brand-indigoPink dark:text-brand-neonMint font-bold">Level 3</span>
+                        </div>
+                        <input id="speedRange" type="range" min="1" max="10" value="3" class="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-indigoPink dark:accent-brand-neonMint">
+                    </div>
+
+                    <hr class="border-slate-100 dark:border-slate-800/80">
+
+                    <!-- 3. Blink Toggle Switch -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300 block">깜빡임 (Blink)</span>
+                            <span class="text-[10px] text-slate-400 dark:text-slate-500 block">글자가 번쩍이는 파티 효과</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="blinkToggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-indigoPink dark:peer-checked:bg-brand-neonMint"></div>
+                        </label>
+                    </div>
+
+                    <!-- 4. Glow Intensity / Neon Light Effect Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300 block">네온사인 후광 (Neon Glow)</span>
+                            <span class="text-[10px] text-slate-400 dark:text-slate-500 block">세련된 고휘도 광채 효과</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="neonToggle" checked class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-indigoPink dark:peer-checked:bg-brand-neonMint"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Start Screen Button -->
+        <div class="absolute bottom-4 left-0 right-0 px-5 z-20">
+            <button id="startFullScreenBtn" class="w-full py-4 bg-gradient-to-r from-brand-indigoPink to-purple-600 dark:from-brand-neonMint dark:to-teal-500 text-white dark:text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-brand-indigoPink/30 dark:shadow-brand-neonMint/10 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all transform duration-200 select-none">
+                <i data-lucide="play" class="w-5 h-5 fill-current"></i>
+                전화면 시작 (가로 고정)
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. Fullscreen Display Overlay Mode -->
+    <div id="fullscreenOverlay" class="fixed inset-0 bg-black z-50 hidden flex-col justify-center items-center overflow-hidden cursor-pointer">
+        <!-- LED Dot Texture Layer on Fullscreen -->
+        <div class="absolute inset-0 pointer-events-none opacity-[0.06]" style="background-image: radial-gradient(circle, #fff 2px, transparent 2px); background-size: 10px 10px;"></div>
+        
+        <!-- Rotating Core Sign Container -->
+        <div id="fullscreenRotateContainer" class="relative w-full h-full flex items-center justify-center">
+            <div id="fullscreenDisplay" class="absolute w-full h-full overflow-hidden flex items-center">
+                <div id="fullscreenTextWrapper" class="whitespace-nowrap select-none inline-block">
+                    <span id="fullscreenText" class="text-7xl font-extrabold px-10">반갑습니다</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Float Floating Control Notice (2 seconds fadeout) -->
+        <div id="fullscreenToast" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 pointer-events-none transition-opacity duration-1000 text-xs text-white font-medium flex items-center gap-1.5 opacity-90">
+            <i data-lucide="info" class="w-3.5 h-3.5"></i>
+            화면을 누르면 설정으로 돌아갑니다
+        </div>
+    </div>
+
+    <!-- UI/UX Toast Container -->
+    <div id="appToast" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg pointer-events-none opacity-0 transition-opacity duration-300 z-50 flex items-center gap-1.5">
+        <i data-lucide="check-circle" class="w-4 h-4 text-brand-neonMint"></i>
+        <span id="toastText">변경 사항 적용 완료</span>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            text: "심장이 바운스! 바운스!",
+            font: "gothic", // gothic, myeongjo, cute, neon
+            textColor: "#FF007F",
+            bgColor: "#000000",
+            direction: "left", // left, right, stop
+            speed: 3,
+            blink: false,
+            neon: true,
+            theme: "dark" // light, dark
+        };
+
+        // DOM elements
+        const previewDisplay = document.getElementById('previewDisplay');
+        const previewTextWrapper = document.getElementById('previewTextWrapper');
+        const previewText = document.getElementById('previewText');
+        const textInput = document.getElementById('textInput');
+        const clearText = document.getElementById('clearText');
+        
+        const fontChips = document.querySelectorAll('.font-chip');
+        const tabTextColorBtn = document.getElementById('tabTextColorBtn');
+        const tabBgColorBtn = document.getElementById('tabBgColorBtn');
+        const textColorPalette = document.getElementById('textColorPalette');
+        const bgColorPalette = document.getElementById('bgColorPalette');
+        const customTextColor = document.getElementById('customTextColor');
+        const customBgColor = document.getElementById('customBgColor');
+        const colorChips = document.querySelectorAll('.color-chip');
+        const bgColorChips = document.querySelectorAll('.bgcolor-chip');
+        const currentColorIndicator = document.getElementById('currentColorIndicator');
+        
+        const dirChips = document.querySelectorAll('.dir-chip');
+        const speedRange = document.getElementById('speedRange');
+        const speedValue = document.getElementById('speedValue');
+        const speedContainer = document.getElementById('speedContainer');
+        const blinkToggle = document.getElementById('blinkToggle');
+        const neonToggle = document.getElementById('neonToggle');
+        
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const startFullScreenBtn = document.getElementById('startFullScreenBtn');
+        
+        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+        const fullscreenRotateContainer = document.getElementById('fullscreenRotateContainer');
+        const fullscreenDisplay = document.getElementById('fullscreenDisplay');
+        const fullscreenTextWrapper = document.getElementById('fullscreenTextWrapper');
+        const fullscreenText = document.getElementById('fullscreenText');
+        const fullscreenToast = document.getElementById('fullscreenToast');
+        
+        const appToast = document.getElementById('appToast');
+        const toastText = document.getElementById('toastText');
+
+        // Font Family mapping
+        const fonts = {
+            gothic: '"Nanum Gothic", sans-serif',
+            myeongjo: '"Nanum Myeongjo", serif',
+            cute: '"Single Day", cursive',
+            neon: '"Orbitron", sans-serif'
+        };
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Setup Init state on Theme
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            state.theme = 'dark';
+        } else {
+            state.theme = 'light';
+        }
+        applyTheme();
+
+        // Sync inputs from State
+        textInput.value = state.text;
+        speedRange.value = state.speed;
+        blinkToggle.checked = state.blink;
+        neonToggle.checked = state.neon;
+
+        // --- Animations with RequestAnimationFrame (Perfect 60fps) ---
+        let previewAnimFrameId = null;
+        let previewX = 0;
+        
+        let fsAnimFrameId = null;
+        let fsX = 0;
+
+        function runPreviewLoop() {
+            // Display dimensions
+            const containerWidth = previewDisplay.offsetWidth;
+            const textWidth = previewTextWrapper.offsetWidth;
+
+            // Compute font styling dynamically
+            previewText.style.color = state.textColor;
+            previewText.style.fontFamily = fonts[state.font];
+            previewDisplay.style.backgroundColor = state.bgColor;
+
+            // Neon Styling
+            if (state.neon) {
+                previewText.style.textShadow = `0 0 4px #fff, 0 0 10px ${state.textColor}, 0 0 20px ${state.textColor}, 0 0 35px ${state.textColor}`;
+            } else {
+                previewText.style.textShadow = 'none';
+            }
+
+            // Blink logic
+            if (state.blink) {
+                const hz = 400; // blink frequency cycle
+                const isBright = Math.floor(Date.now() / hz) % 2 === 0;
+                previewText.style.opacity = isBright ? '1' : '0';
+            } else {
+                previewText.style.opacity = '1';
+            }
+
+            // Marquee translation
+            if (state.direction === 'left') {
+                previewX -= (state.speed * 0.4); // speed factor tuned
+                if (previewX < -textWidth) {
+                    previewX = containerWidth;
+                }
+            } else if (state.direction === 'right') {
+                previewX += (state.speed * 0.4);
+                if (previewX > containerWidth) {
+                    previewX = -textWidth;
+                }
+            } else {
+                // Static centering
+                previewX = (containerWidth - textWidth) / 2;
+            }
+
+            previewTextWrapper.style.transform = `translateX(${previewX}px)`;
+
+            previewAnimFrameId = requestAnimationFrame(runPreviewLoop);
+        }
+
+        function runFsLoop() {
+            const containerWidth = fullscreenDisplay.offsetWidth;
+            const textWidth = fullscreenTextWrapper.offsetWidth;
+
+            fullscreenText.style.color = state.textColor;
+            fullscreenText.style.fontFamily = fonts[state.font];
+            fullscreenDisplay.style.backgroundColor = state.bgColor;
+
+            // Responsive Font size scaling for fullscreen
+            const screenShortSide = Math.min(window.innerWidth, window.innerHeight);
+            fullscreenText.style.fontSize = `${screenShortSide * 0.45}px`; 
+
+            if (state.neon) {
+                fullscreenText.style.textShadow = `0 0 6px #fff, 0 0 16px ${state.textColor}, 0 0 32px ${state.textColor}, 0 0 60px ${state.textColor}`;
+            } else {
+                fullscreenText.style.textShadow = 'none';
+            }
+
+            if (state.blink) {
+                const hz = 300; 
+                const isBright = Math.floor(Date.now() / hz) % 2 === 0;
+                fullscreenText.style.opacity = isBright ? '1' : '0';
+            } else {
+                fullscreenText.style.opacity = '1';
+            }
+
+            if (state.direction === 'left') {
+                fsX -= (state.speed * 0.9);
+                if (fsX < -textWidth) {
+                    fsX = containerWidth;
+                }
+            } else if (state.direction === 'right') {
+                fsX += (state.speed * 0.9);
+                if (fsX > containerWidth) {
+                    fsX = -textWidth;
+                }
+            } else {
+                fsX = (containerWidth - textWidth) / 2;
+            }
+
+            fullscreenTextWrapper.style.transform = `translateX(${fsX}px)`;
+
+            fsAnimFrameId = requestAnimationFrame(runFsLoop);
+        }
+
+        // Boot loops
+        cancelAnimationFrame(previewAnimFrameId);
+        runPreviewLoop();
+
+        // --- Interaction Event Listeners ---
+
+        // Realtime Text Input sync
+        textInput.addEventListener('input', (e) => {
+            state.text = e.target.value || " ";
+            previewText.textContent = state.text;
+            fullscreenText.textContent = state.text;
+        });
+
+        // Clear button
+        clearText.addEventListener('click', () => {
+            state.text = " ";
+            textInput.value = "";
+            previewText.textContent = " ";
+            fullscreenText.textContent = " ";
+            textInput.focus();
+        });
+
+        // Font chip selection
+        function selectFont(fontKey) {
+            state.font = fontKey;
+            fontChips.forEach(chip => {
+                if (chip.getAttribute('data-font') === fontKey) {
+                    chip.classList.add('border-brand-indigoPink', 'dark:border-brand-neonMint', 'text-brand-indigoPink', 'dark:text-brand-neonMint');
+                    chip.classList.remove('border-slate-100', 'dark:border-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                } else {
+                    chip.classList.remove('border-brand-indigoPink', 'dark:border-brand-neonMint', 'text-brand-indigoPink', 'dark:text-brand-neonMint');
+                    chip.classList.add('border-slate-100', 'dark:border-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                }
+            });
+        }
+        selectFont(state.font);
+        fontChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                selectFont(chip.getAttribute('data-font'));
+                showToast("서체 변경 완료!");
+            });
+        });
+
+        // Color palettes tabs
+        tabTextColorBtn.addEventListener('click', () => {
+            textColorPalette.classList.remove('hidden');
+            bgColorPalette.classList.add('hidden');
+            tabTextColorBtn.className = "text-xs font-bold text-brand-indigoPink dark:text-brand-neonMint pb-1 border-b-2 border-brand-indigoPink dark:border-brand-neonMint";
+            tabBgColorBtn.className = "text-xs font-bold text-slate-400 dark:text-slate-500 pb-1 border-b-2 border-transparent";
+            currentColorIndicator.textContent = state.textColor;
+        });
+
+        tabBgColorBtn.addEventListener('click', () => {
+            textColorPalette.classList.add('hidden');
+            bgColorPalette.classList.remove('hidden');
+            tabBgColorBtn.className = "text-xs font-bold text-brand-indigoPink dark:text-brand-neonMint pb-1 border-b-2 border-brand-indigoPink dark:border-brand-neonMint";
+            tabTextColorBtn.className = "text-xs font-bold text-slate-400 dark:text-slate-500 pb-1 border-b-2 border-transparent";
+            currentColorIndicator.textContent = state.bgColor;
+        });
+
+        // Text Color Chips interaction
+        colorChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                colorChips.forEach(c => c.classList.remove('border-white', 'scale-105', 'border-2', 'shadow-md'));
+                colorChips.forEach(c => c.classList.add('border-slate-200'));
+                chip.classList.add('border-white', 'scale-105', 'border-2', 'shadow-md');
+                
+                const color = chip.getAttribute('data-color');
+                state.textColor = color;
+                currentColorIndicator.textContent = color;
+            });
+        });
+
+        // Background Color Chips interaction
+        bgColorChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                bgColorChips.forEach(c => c.classList.remove('border-white', 'scale-105', 'border-2', 'shadow-md'));
+                bgColorChips.forEach(c => c.classList.add('border-slate-200'));
+                chip.classList.add('border-white', 'scale-105', 'border-2', 'shadow-md');
+
+                const color = chip.getAttribute('data-bgcolor');
+                state.bgColor = color;
+                currentColorIndicator.textContent = color;
+            });
+        });
+
+        // Custom Text Color input picker
+        customTextColor.addEventListener('input', (e) => {
+            const color = e.target.value;
+            state.textColor = color;
+            currentColorIndicator.textContent = color;
+        });
+
+        // Custom BG Color input picker
+        customBgColor.addEventListener('input', (e) => {
+            const color = e.target.value;
+            state.bgColor = color;
+            currentColorIndicator.textContent = color;
+        });
+
+        // Marquee Direction chips
+        dirChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                const direction = chip.getAttribute('data-dir');
+                state.direction = direction;
+                
+                // Toggle active style
+                dirChips.forEach(c => {
+                    c.className = "dir-chip text-xs px-3 py-1.5 rounded-lg font-bold transition-all text-slate-400 dark:text-slate-500";
+                });
+                chip.className = "dir-chip text-xs px-3 py-1.5 rounded-lg font-bold transition-all bg-white dark:bg-slate-800 shadow-sm text-brand-indigoPink dark:text-brand-neonMint";
+                
+                // Hide/Show speed slider based on movement
+                if (direction === 'stop') {
+                    speedContainer.style.opacity = '0.3';
+                    speedRange.disabled = true;
+                } else {
+                    speedContainer.style.opacity = '1';
+                    speedRange.disabled = false;
+                }
+            });
+        });
+
+        // Speed Range Slider
+        speedRange.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            state.speed = val;
+            speedValue.textContent = `Level ${val}`;
+        });
+
+        // Blink Toggle
+        blinkToggle.addEventListener('change', (e) => {
+            state.blink = e.target.checked;
+        });
+
+        // Neon Toggle
+        neonToggle.addEventListener('change', (e) => {
+            state.neon = e.target.checked;
+        });
+
+        // --- Theme System ---
+        function applyTheme() {
+            if (state.theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeIcon.setAttribute('data-lucide', 'sun');
+                themeIcon.className = "w-5 h-5 text-yellow-400";
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeIcon.setAttribute('data-lucide', 'moon');
+                themeIcon.className = "w-5 h-5 text-slate-600";
+            }
+            lucide.createIcons();
+        }
+
+        themeToggle.addEventListener('click', () => {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            applyTheme();
+            showToast(state.theme === 'dark' ? "어두운 테마 활성화" : "밝은 테마 활성화");
+        });
+
+        // --- Simulated / Real Landscape Orientation Fallback & Full Screen Flow ---
+        function handleOrientation() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            
+            if (isPortrait) {
+                // Screen is taller than wide, rotate overlay component
+                // To display full screen landscape mock in portrait
+                fullscreenRotateContainer.style.width = `${window.innerHeight}px`;
+                fullscreenRotateContainer.style.height = `${window.innerWidth}px`;
+                fullscreenRotateContainer.style.transform = 'rotate(90deg)';
+                fullscreenRotateContainer.style.transformOrigin = 'center center';
+            } else {
+                // Device natively in landscape
+                fullscreenRotateContainer.style.width = '100vw';
+                fullscreenRotateContainer.style.height = '100vh';
+                fullscreenRotateContainer.style.transform = 'none';
+            }
+        }
+
+        // Trigger fullscreen mode
+        startFullScreenBtn.addEventListener('click', async () => {
+            // Apply text sync before transition
+            fullscreenText.textContent = state.text;
+            fsX = window.innerWidth; // Reset scroll position offset
+            
+            // Show overlay
+            fullscreenOverlay.classList.remove('hidden');
+            fullscreenOverlay.classList.add('flex');
+
+            // Responsive simulated orientation lock
+            handleOrientation();
+            window.addEventListener('resize', handleOrientation);
+
+            // Attempt actual device Fullscreen Mode & ScreenOrientation API if supported
+            try {
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                }
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape').catch(() => {
+                        // Suppress orientation lock errors on desktop/non-compatible browsers
+                    });
+                }
+            } catch (err) {
+                // Fail silently (Safari on iOS doesn't support requestFullscreen on document element directly)
+            }
+
+            // Start loop
+            cancelAnimationFrame(previewAnimFrameId);
+            cancelAnimationFrame(fsAnimFrameId);
+            runFsLoop();
+
+            // Setup temporary notification fade out
+            fullscreenToast.style.opacity = '1';
+            setTimeout(() => {
+                fullscreenToast.style.opacity = '0';
+            }, 2500);
+        });
+
+        // Exit Fullscreen mode on tap
+        fullscreenOverlay.addEventListener('click', async () => {
+            window.removeEventListener('resize', handleOrientation);
+            
+            // Release Native Fullscreen APIs
+            try {
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                }
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            } catch (err) {
+                // Silent catch
+            }
+
+            // Hide overlay
+            fullscreenOverlay.classList.add('hidden');
+            fullscreenOverlay.classList.remove('flex');
+
+            // Restart preview loops
+            cancelAnimationFrame(fsAnimFrameId);
+            runPreviewLoop();
+        });
+
+        // Native esc button/back button detection
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                // User pressed ESC
+                window.removeEventListener('resize', handleOrientation);
+                fullscreenOverlay.classList.add('hidden');
+                fullscreenOverlay.classList.remove('flex');
+                cancelAnimationFrame(fsAnimFrameId);
+                runPreviewLoop();
+            }
+        });
+
+        // App Toast helper
+        let toastTimeout = null;
+        function showToast(message) {
+            toastText.textContent = message;
+            appToast.style.opacity = '1';
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                appToast.style.opacity = '0';
+            }, 1500);
+        }
+
+        // Initialize display content
+        previewText.textContent = state.text;
+        fullscreenText.textContent = state.text;
+    </script>
+</body>
+</html>
